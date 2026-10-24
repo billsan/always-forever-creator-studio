@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#17241f">
+  <title>Always & Forever Creator Studio</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/cinematic-breakthrough.css">
+</head>
+<body>
+  <dialog id="access-dialog" class="welcome-dialog"><h2>Open Studio from your account</h2><p>Creator Studio is private. Sign in at Always &amp; Forever and use Creator Studio in My Account.</p><a class="primary-button" href="https://alwaysandforever.life/my-account/">Go to My Account</a></dialog>
+  <div id="studio" class="studio-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Always and Forever Creator Studio">
+        <span class="brand-mark">A<span>&amp;</span>F</span>
+        <span><strong>Creator Studio</strong><small>Always &amp; Forever</small></span>
+      </a>
+      <div class="project-title-wrap"><span class="save-dot"></span><input id="project-title" value="My Story" aria-label="Project title"><small id="save-state">Saved</small></div>
+      <div class="top-actions">
+        <button id="new-project-button" class="soft-button">＋ New project</button>
+        <label class="compact-field">Format<select id="aspect"><option>16:9</option><option>9:16</option><option>1:1</option><option>4:5</option></select></label>
+        <button id="preview-button" class="soft-button">▶ Preview</button>
+        <button id="render-button" class="primary-button">Create video</button>
+      </div>
+    </header>
+
+    <main class="editor-grid">
+      <nav class="tool-rail" aria-label="Editing tools">
+        <button data-panel="templates"><span>▦</span>Templates</button>
+        <button class="active" data-panel="media"><span>▧</span>Media</button>
+        <button data-panel="obituary"><span>✎</span>Obituary</button>
+        <button data-panel="prep"><span>✂</span>Photo Prep</button>
+        <button data-panel="designs"><span>✦</span>Designs</button>
+        <button data-panel="effects"><span>✧</span>Effects</button>
+        <button data-panel="motion"><span>▶</span>Motion</button>
+        <button data-panel="text"><span>T</span>Text</button>
+        <button data-panel="audio"><span>♫</span>Audio</button>
+        <button data-panel="brand"><span>◇</span>Brand</button>
+        <button data-panel="release"><span>↗</span>Release</button>
+      </nav>
+
+      <aside class="asset-panel">
+        <section class="panel-view" data-view="templates">
+          <div class="panel-heading"><div><small>Original story designs</small><h2>Templates</h2></div></div>
+          <label class="field">Occasion<select id="template-category"><option value="all">All occasions</option><option value="memorial">Memorial</option><option value="wedding">Wedding</option><option value="birthday">Birthday</option><option value="anniversary">Anniversary</option><option value="general">General celebration</option></select></label>
+          <p class="helper template-helper">Choose a complete scene layout, then replace each photo slot with your own media.</p>
+          <div id="template-list" class="template-list"><p class="empty-list">Loading templates...</p></div>
+        </section>
+        <section class="panel-view active" data-view="media">
+          <div class="panel-heading"><div><small>Your story library</small><h2>Media</h2></div><label class="upload-button">＋ Upload<input id="file-input" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,audio/mpeg,audio/mp4,audio/wav"></label></div>
+          <div class="filter-row"><button class="active" data-filter="all">All</button><button data-filter="photo">Photos</button><button data-filter="video">Clips</button><button data-filter="audio">Audio</button></div>
+          <div id="asset-list" class="asset-list"></div>
+        </section>
+        <section class="panel-view obituary-panel" data-view="obituary">
+          <div class="panel-heading"><div><small>Tell their story beautifully</small><h2>AI Obituary Writer</h2></div></div>
+          <div class="obituary-card"><strong>A thoughtful starting point</strong><p>Share as much or as little as you know. The writer uses only the details you provide, and everything remains editable.</p></div>
+          <form id="obituary-form">
+            <div class="two-fields"><label class="field">Deceased's name<input id="obit-name" maxlength="180" required></label><label class="field">Nickname<input id="obit-nickname" maxlength="120"></label></div>
+            <div class="two-fields"><label class="field">Birth date<input id="obit-birth-date" type="date"></label><label class="field">Passing date<input id="obit-passing-date" type="date"></label></div>
+            <label class="field">Hometown or places called home<input id="obit-hometown" maxlength="300"></label>
+            <label class="field">Relationships and surviving family<textarea id="obit-surviving-family" rows="3" placeholder="Spouse, children, grandchildren, siblings, close friends..."></textarea></label>
+            <label class="field">Preceded in death by<textarea id="obit-preceded" rows="3" placeholder="Family members or loved ones to mention"></textarea></label>
+            <label class="field">Education and career<textarea id="obit-career" rows="3"></textarea></label>
+            <label class="field">Military service<textarea id="obit-military" rows="2"></textarea></label>
+            <label class="field">Hobbies and passions<textarea id="obit-hobbies" rows="3"></textarea></label>
+            <label class="field">Church and community involvement<textarea id="obit-community" rows="3"></textarea></label>
+            <label class="field">Personality traits<textarea id="obit-personality" rows="3" placeholder="Kind, funny, generous, determined..."></textarea></label>
+            <label class="field">Favorite memories<textarea id="obit-favorite-memories" rows="4"></textarea></label>
+            <label class="field">Service details<textarea id="obit-service" rows="3" placeholder="Date, time, location, visitation, donations..."></textarea></label>
+            <label class="field">Livestream URL (optional)<input id="obit-livestream-url" type="url" placeholder="https://youtube.com/live/... or another livestream link"><small>When added, the memorial page gives visitors both the obituary and a Watch Livestream button.</small></label>
+            <label class="field">Closing message or Bible verse<textarea id="obit-closing" rows="3"></textarea></label>
+            <label class="field memories-field"><span>Write from memories</span><textarea id="obit-memories" rows="6" placeholder="Dad loved fishing, old country music, the Broncos, and Sundays with his grandchildren..."></textarea></label>
+            <div class="two-fields"><label class="field">Tone<select id="obit-tone"><option>Traditional</option><option selected>Warm &amp; Personal</option><option>Celebration of Life</option><option>Faith-Based</option><option>Short Newspaper Style</option></select></label><label class="field">Length<select id="obit-length"><option>Short</option><option selected>Standard</option><option>Detailed</option></select></label></div>
+            <button id="generate-obituary" type="submit" class="primary-button wide">Generate obituary</button>
+          </form>
+          <div id="obituary-result" class="obituary-result" hidden>
+            <label class="field">Editable obituary<textarea id="generated-obituary" rows="16"></textarea></label>
+            <div class="obituary-actions"><button id="regenerate-obituary" class="soft-button">Regenerate</button><button id="save-obituary" class="primary-button">Save to memorial</button></div>
+            <div id="memorial-qr-card" class="memorial-qr-card" hidden>
+              <div class="memorial-qr-copy"><small>SHARE THEIR STORY</small><strong>Memorial QR Code</strong><p>This permanent QR code can open two destinations: the obituary/memorial and an optional livestream. Print it on programs, cards, keepsakes, plaques, or other memorial pieces.</p><div id="memorial-link" class="memorial-link"></div></div>
+              <img id="memorial-qr-image" alt="Memorial QR code">
+              <div class="memorial-qr-actions"><a id="view-memorial" class="soft-button" target="_blank" rel="noopener">View Memorial</a><a id="download-memorial-qr" class="soft-button" download="always-forever-memorial-qr.svg">Download QR Code</a><button id="copy-memorial-link" type="button" class="soft-button">Copy Memorial Link</button><button id="print-memorial-qr" type="button" class="primary-button">Print QR Code</button></div><div class="memorial-social"><strong>Share Memorial</strong><div class="memorial-social-actions"><button id="share-memorial-more" type="button" class="primary-button">More Share Options</button><button id="share-memorial-qr" type="button" class="soft-button">Share QR Image</button><button id="share-memorial-facebook" type="button" class="soft-button">Facebook</button><button id="share-memorial-x" type="button" class="soft-button">X</button><button id="share-memorial-whatsapp" type="button" class="soft-button">WhatsApp</button><button id="share-memorial-email" type="button" class="soft-button">Email</button></div><small>On mobile, More Share Options opens your phone's share menu. The memorial page also includes share controls so visitors can continue sharing after opening it from Facebook.</small></div>
+            </div>
+            <button id="create-video-script" class="soft-button wide">Create Memorial Video Script</button>
+            <label id="video-script-wrap" class="field" hidden>Shotstack-ready narration<textarea id="video-script" rows="8"></textarea></label>
+          </div>
+        </section>
+        <section class="panel-view" data-view="prep">
+          <div class="panel-heading"><div><small>Preserve the original</small><h2>Photo Preparation</h2></div></div>
+          <p class="helper">Select a photo on the timeline. Background removal creates a separate transparent PNG and never overwrites the original.</p>
+          <div id="prep-empty" class="prep-empty">Select a photo slide to begin.</div>
+          <div id="prep-workspace" hidden>
+            <div id="prep-preview" class="prep-preview"></div>
+            <label class="prep-consent"><input id="prep-consent" type="checkbox"> I understand this selected photo will be sent securely to remove.bg for processing.</label>
+            <button id="remove-photo-background" class="primary-button wide" disabled>Remove background</button>
+            <p class="helper">The new cutout will replace the photo on this slide and also appear in Media. Your original remains available.</p>
+          </div>
+        </section>
+        <section class="panel-view" data-view="designs"><div class="panel-heading"><div><small>Original collections</small><h2>Designs</h2></div></div><label class="field">Occasion<select id="occasion"><option value="memorial">Memorial</option><option value="wedding">Wedding</option><option value="birthday">Birthday</option><option value="anniversary">Anniversary</option><option value="celebration">Celebration</option></select></label><div id="design-list" class="design-list"></div><h3 class="motion-subheading">Multi-photo slides</h3><p class="helper">Insert a layout, select it on the timeline, then add photos from Media to fill each opening.</p><div class="collage-buttons"><button data-add-collage="2">Two photos</button><button data-add-collage="3">Three photos</button><button data-add-collage="4">Four photos</button></div></section>
+        <section class="panel-view" data-view="effects">
+          <div class="panel-heading"><div><small>Curated motion</small><h2>Slide Effects</h2></div></div>
+          <p class="helper">Select one slide on the timeline, choose an intensity, then apply an effect. Only that slide changes.</p>
+          <label class="field">Collection<select id="effect-category"><option value="all">All effects</option><option>Memorial</option><option>Wedding</option><option>Birthday</option><option>Anniversary</option><option>Faith</option><option>Nature</option><option>Seasonal</option><option>Vintage</option><option>General</option></select></label>
+          <label class="field">Intensity<select id="effect-intensity"><option value="subtle">Subtle</option><option value="full">Full</option></select></label>
+          <div id="effect-list" class="effect-library"></div>
+          <button id="remove-slide-effect" class="effect-remove wide">Remove effect from selected slide</button>
+        </section>
+        <section class="panel-view" data-view="motion">
+          <div class="panel-heading"><div><small>Moving scenery</small><h2>Motion Backgrounds</h2></div></div>
+          <p class="helper">Select a slide, then place moving scenery behind its photo and words.</p>
+          <label class="field">Photo treatment<select id="motion-foreground"><option value="framed">Framed over background</option><option value="soft-frame">Soft floating frame</option><option value="blend">Full-screen blend</option></select></label>
+          <div class="two-fields"><label class="field">Darken<input id="motion-darken" type="range" min="0" max="0.75" step="0.05" value="0.2"></label><label class="field">Blur<input id="motion-blur" type="range" min="0" max="12" step="1" value="0"></label></div>
+          <div id="motion-list" class="motion-library"></div>
+          <h3 class="motion-subheading">Your uploaded videos</h3>
+          <p class="helper">Upload an MP4 in Media, assign its category, then use it as a looping background. Uploaded clips replace the former built-in animations.</p>
+          <label class="field">Show category<select id="motion-category-filter"><option value="all">All uploaded motion</option><option>Memorial</option><option>Wedding</option><option>Birthday</option><option>Anniversary</option><option>Faith</option><option>Nature</option><option>General</option></select></label>
+          <div id="motion-video-list" class="motion-video-list"></div>
+          <button id="remove-motion-background" class="effect-remove wide">No motion on selected slide</button>
+        </section>
+        <section class="panel-view" data-view="text"><div class="panel-heading"><div><small>Words that matter</small><h2>Text</h2></div></div><p class="helper">Select any photo, multi-photo slide, or video intro first. Added text has its own appearance time and duration, and can be dragged anywhere on the preview.</p><button class="insert-card" data-add-text="title"><strong>Opening title slide</strong><span>Placed first as its own scene</span></button><button class="insert-card" data-add-text="heading"><strong>Slide heading</strong><span>Name or heading over a selected slide or video</span></button><button class="insert-card" data-add-text="details"><strong>Person details</strong><span>Name, date of birth, date of death, and more</span></button><button class="insert-card" data-add-text="caption"><strong>Photo or video caption</strong><span>Timed supporting words over the selected scene</span></button><button class="insert-card" data-add-text="quote"><strong>Quote or verse</strong><span>Reflective text over a selected scene</span></button></section>
+        <section class="panel-view" data-view="audio"><div class="panel-heading"><div><small>Music and voices</small><h2>Audio</h2></div></div><p class="helper">Upload music, narration, or voice memories from the Media panel. Audio receives its own timeline track.</p><div class="audio-tips"><span>♫ Background music</span><span>◉ Voice recording</span><span>⌁ Fade and volume</span></div><div class="rights-foundation"><strong>Always &amp; Forever Safe Music</strong><p>The licensed catalog will appear here after tracks and sublicensing rights are approved. Customer-uploaded songs are not automatically copyright-cleared.</p><span>Catalog connection pending</span></div></section>
+        <section class="panel-view" data-view="brand"><div class="panel-heading"><div><small>Your visual identity</small><h2>Brand</h2></div></div><label class="field">Accent color<input id="accent-color" type="color" value="#b89557"></label><label class="field">Canvas background<input id="background-color" type="color" value="#18221e"></label><p class="helper">Saved with this project. Custom fonts and reusable brand kits arrive in Phase 2.</p></section>
+        <section class="panel-view" data-view="release"><div class="panel-heading"><div><small>After payment</small><h2>Download &amp; Share</h2></div></div><div id="release-status" class="release-status">Waiting for a paid final render.</div><label class="field">Suggested caption<textarea id="release-caption" rows="4" placeholder="Write a message to accompany the video."></textarea></label><div class="release-options"><article><strong>Full HD Master</strong><span>16:9 · Facebook and YouTube</span><button data-release-format="master" disabled>Download</button></article><article><strong>Mobile Portrait</strong><span>9:16 · Reels, Stories and Shorts</span><button data-release-format="vertical" disabled>Download</button></article><article><strong>Portrait Feed</strong><span>4:5 · Instagram and Facebook feed</span><button data-release-format="portrait" disabled>Download</button></article><article><strong>Square Social</strong><span>1:1 · Universal social post</span><button data-release-format="square" disabled>Download</button></article></div><button id="native-share" class="primary-button wide" disabled>Create share page</button><div id="share-result" class="share-result" hidden><img id="share-qr" alt="QR code for shared video"><a id="share-link" target="_blank" rel="noopener">Open customer share page</a><button id="copy-share-link">Copy share link</button></div><p class="helper">Downloads remain private. Creating a share page gives you a private-looking, unlisted link and QR code that anyone with the link can view.</p></section>
+      </aside>
+
+      <section class="workspace">
+        <div class="workspace-toolbar"><div class="history-controls"><button id="undo" title="Undo">↶</button><button id="redo" title="Redo">↷</button></div><div class="canvas-tools"><button data-canvas-fit="fit">Fit</button><button id="safe-area">Safe area</button><span id="zoom-value">100%</span></div></div>
+        <div class="canvas-zone">
+          <div id="canvas" class="canvas" data-ratio="16:9">
+            <div class="canvas-empty"><span>✦</span><h2>Begin with a moment</h2><p>Upload a photo or clip, then add it to your story.</p></div>
+            <div id="motion-layer" class="motion-layer" aria-hidden="true"></div>
+            <div id="effect-layer" class="effect-layer" aria-hidden="true"></div>
+            <div class="safe-guides" hidden></div>
+            <div id="canvas-caption" class="canvas-caption"></div>
+          </div>
+        </div>
+        <div class="playback"><button id="back-frame">‹</button><button id="play-button" class="play-button">▶</button><button id="forward-frame">›</button><span id="current-time">0:00</span><input id="scrubber" type="range" min="0" max="100" value="0"><span id="total-time">0:00</span></div>
+      </section>
+
+      <aside class="inspector">
+        <div class="inspector-heading"><small>Selected item</small><h2>Details</h2></div>
+        <div id="inspector-empty" class="inspector-empty"><span>◇</span><p>Select a timeline item to adjust its timing and appearance.</p></div>
+        <form id="inspector-form" hidden>
+          <label class="field">Text or name<textarea id="item-name" rows="3"></textarea></label>
+          <div class="two-fields"><label class="field">Duration / visible for<input id="item-duration" type="number" min="0.5" max="600" step="0.5"></label><label class="field">Start / appear at<input id="item-start" type="number" min="0" step="0.5"></label></div>
+          <div class="text-overlay-only" hidden><p class="helper">Drag the selected text directly on the preview, or choose a starting position below.</p><label class="field">Position<select id="item-position"><option value="custom">Custom position</option><option value="top-left">Top left</option><option value="top-center">Top center</option><option value="top-right">Top right</option><option value="center">Center</option><option value="bottom-left">Bottom left</option><option value="bottom-center">Bottom center</option><option value="bottom-right">Bottom right</option></select></label><div class="two-fields"><label class="field">Text size<select id="item-font-size"><option value="24">Small</option><option value="32">Medium</option><option value="42">Large</option><option value="56">Extra large</option></select></label><label class="field">Color<input id="item-text-color" type="color" value="#ffffff"></label></div></div>
+          <div class="photo-only" hidden><label class="field">Lighten or darken<input id="item-photo-brightness" type="range" min="0.4" max="1.8" step="0.05" value="1"></label><label class="field">Old photo restoration<select id="item-photo-restore"><option value="none">Original photo</option><option value="auto">Auto restore</option><option value="faded">Repair faded color</option><option value="bw">Black &amp; white clarity</option><option value="warm">Warm vintage repair</option></select></label><label class="field">Restoration strength<input id="item-photo-strength" type="range" min="0" max="1" step="0.05" value="0.65"></label><p class="helper">Non-destructive preview correction. Your original upload is always preserved.</p></div>
+          <div class="slide-style-only" hidden><label class="field">Frame or border<select id="item-frame-style"><option value="none">No frame</option><option value="classic">Classic white border</option><option value="gold">Gold border</option><option value="polaroid">Polaroid</option><option value="soft">Soft rounded frame</option></select></label><label class="field">Cinematic photo action<select id="item-cinematic-action"><option value="none">None — show photo normally</option><optgroup label="Dramatic Breakthrough"><option value="cloud-breakthrough">Photo explodes through clouds</option><option value="light-gateway">Photo emerges through heavenly gateway</option><option value="garden-breakthrough">Photo breaks through garden scene</option><option value="petal-burst">Photo bursts through rose petals</option><option value="confetti-breakthrough">Photo bursts through confetti</option><option value="fireworks-breakthrough">Photo emerges through fireworks</option><option value="golden-breakthrough">Photo breaks through golden light</option><option value="film-burn-breakthrough">Photo burns through vintage film</option></optgroup><optgroup label="Memorial &amp; Faith — Gentle"><option value="cloud-reveal">Moving clouds reveal</option><option value="heavenly-light">Heavenly light exposure</option><option value="soft-dissolve">Gentle remembrance dissolve</option></optgroup><optgroup label="Wedding — Gentle"><option value="garden-reveal">Garden veil reveal</option><option value="petal-reveal">Rose petal reveal</option></optgroup><optgroup label="Birthday &amp; Celebration — Gentle"><option value="celebration-reveal">Celebration sparkle reveal</option><option value="color-bloom">Color bloom</option></optgroup><optgroup label="Anniversary — Gentle"><option value="golden-wipe">Golden memory wipe</option><option value="then-now">Vintage film reveal</option></optgroup><optgroup label="General Movement"><option value="slow-zoom">Slow cinematic zoom</option><option value="pan-left">Slow pan left</option><option value="pan-right">Slow pan right</option></optgroup></select></label><button id="clear-slide-styling" type="button" class="soft-button wide">Clear motion, effect, frame and action</button></div>
+          <div class="collage-only" hidden><p class="helper">Add photos from the Media panel to fill the next empty opening.</p><button id="clear-collage" type="button" class="soft-button wide">Clear all collage photos</button></div>
+          <label class="field visual-only">Fit<select id="item-fit"><option value="contain">Show complete</option><option value="cover">Fill canvas</option></select></label>
+          <label class="field visual-only">Transition<select id="item-transition"><option value="fade">Soft fade</option><option value="dissolve">Dissolve</option><option value="slide">Gentle slide</option><option value="none">None</option></select></label>
+          <label class="field attached-caption-field">Attached caption<input id="item-caption" type="text" maxlength="180"></label>
+          <label class="field audio-only">Volume<input id="item-volume" type="range" min="0" max="1" step="0.05"></label>
+          <div class="visual-sort-controls"><button id="move-item-earlier" type="button" class="soft-button">← Move earlier</button><button id="move-item-later" type="button" class="soft-button">Move later →</button></div>
+          <button id="duplicate-item" type="button" class="soft-button wide">Duplicate</button>
+          <button id="delete-item" type="button" class="danger-button wide">Remove from timeline</button>
+        </form>
+      </aside>
+    </main>
+
+    <section class="timeline-section">
+      <div class="timeline-heading"><div><strong>Story timeline</strong><span id="timeline-summary">0 scenes · 0:00</span></div><div><button id="zoom-out">−</button><input id="timeline-zoom" type="range" min="60" max="180" value="100"><button id="zoom-in">＋</button></div></div>
+      <div class="timeline-body">
+        <div class="track-labels"><div>Visual story</div><div>Words</div><div>Music &amp; voice</div></div>
+        <div id="tracks" class="tracks">
+          <div id="visual-track" class="track" data-track="visual"></div>
+          <div id="text-track" class="track" data-track="text"></div>
+          <div id="audio-track" class="track" data-track="audio"></div>
+          <div id="playhead" class="playhead"><span></span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
+  <dialog id="welcome-dialog" class="welcome-dialog"><form method="dialog"><span class="welcome-mark">A&amp;F</span><small>Always &amp; Forever</small><h1>Create a story worth keeping</h1><p>Build a memorial, wedding film, birthday story, anniversary tribute, or any celebration of life.</p><label>Project name<input id="new-project-name" value="My Story" maxlength="100"></label><button id="create-project" value="default" class="primary-button">Start creating</button></form></dialog>
+  <script src="/app.js" defer></script>
+</body>
+</html>

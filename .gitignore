@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Cloudflare local files
+.wrangler/
+
+# Environment and secret files
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.bak

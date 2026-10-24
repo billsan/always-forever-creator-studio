@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Safe Music Administrator</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/safe-music-admin.css"></head>
+<body class="music-admin-page"><main class="music-admin-shell">
+<header><a href="/">← Creator Studio</a><small>Always &amp; Forever</small><h1>Safe Music Administrator</h1><p>Upload only music whose agreement permits use in customer videos and distribution on the selected platforms.</p></header>
+<section class="admin-card" id="access-card"><h2>Administrator access</h2><label class="field">Private administrator key<input id="admin-key" type="password" autocomplete="current-password"></label><button id="unlock" class="primary-button">Open catalog</button><p class="helper">The key stays in this browser tab and is never placed in the website files.</p></section>
+<div id="admin-workspace" hidden>
+<section class="admin-card"><h2>Add approved music</h2><form id="music-form">
+<label class="field">Audio file<input id="track-file" type="file" required accept="audio/mpeg,audio/mp4,audio/wav"></label>
+<div class="admin-grid"><label class="field">Track title<input id="track-title" required></label><label class="field">Artist / composer<input id="track-artist" required></label><label class="field">Mood<input id="track-mood" placeholder="Gentle, hopeful"></label><label class="field">Length in seconds<input id="track-duration" type="number" min="0" step="0.1"></label></div>
+<label class="field">Occasions, separated by commas<input id="track-occasions" placeholder="Memorial, Wedding, Anniversary"></label>
+<label class="field">Permitted platforms, separated by commas<input id="track-platforms" required placeholder="Facebook, Instagram, YouTube, TikTok, customer download"></label>
+<div class="admin-grid"><label class="field">Rights provider / owner<input id="license-provider" required></label><label class="field">Agreement version or date<input id="license-version"></label></div>
+<label class="field">License reference or contract location<input id="license-reference" required placeholder="Contract number or private document location"></label>
+<label class="field">Content ID policy<select id="content-id-policy"><option value="not-registered">Not registered in Content ID</option><option value="allowlisted">Customer channels can be allowlisted</option><option value="claims-released">Provider releases valid claims</option><option value="unknown">Unknown — keep inactive</option></select></label>
+<label class="rights-confirm"><input id="rights-confirm" type="checkbox" required> I verified that Always &amp; Forever may sublicense this track inside paid customer videos and customers may publish those videos on the platforms listed above.</label>
+<button class="primary-button" type="submit">Upload as inactive</button><p id="admin-notice" class="helper" role="status"></p>
+</form></section>
+<section class="admin-card"><div class="catalog-heading"><div><h2>Catalog</h2><p class="helper">New tracks remain inactive until you review and publish them.</p></div><button id="refresh">Refresh</button></div><div id="admin-track-list" class="admin-track-list"></div></section>
+</div></main><script src="/safe-music-admin.js"></script></body></html>
