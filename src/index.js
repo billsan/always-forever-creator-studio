@@ -1198,7 +1198,7 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
     renderStored
   );
 
-  const clip = {
+    const clip = {
     asset: {
       type: asset.kind === "video" ? "video" : "image",
       src: sourceUrl
@@ -1212,6 +1212,22 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
       out: transitionName(item.transition)
     }
   };
+
+  if (asset.kind === "photo") {
+    const cinematicAction = String(item.cinematicAction || "none");
+
+    if (
+      cinematicAction === "slow-zoom" ||
+      cinematicAction === "pan-left" ||
+      cinematicAction === "pan-right"
+    ) {
+      const effect = shotstackEffect(item);
+
+      if (effect) {
+        clip.effect = effect;
+      }
+    }
+  }
 
   visualClips.push(clip);
 }
