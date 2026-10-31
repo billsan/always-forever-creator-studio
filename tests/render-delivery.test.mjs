@@ -11,11 +11,11 @@ test("Shotstack rendering uses a secret, signed source URLs, and private R2 outp
   assert.match(worker, /env\.SHOTSTACK_API_KEY/);
   assert.doesNotMatch(worker, /x-api-key["']?\s*:\s*["'][A-Za-z0-9_-]{20}/);
   assert.match(worker, /signedRenderMediaUrl/);
-  assert.match(worker, /destinations: \[\{ provider: "shotstack", exclude: true \}\]/);
+  assert.match(worker, /destinations:\s*\[\s*\{\s*provider:\s*"shotstack",\s*exclude:\s*true\s*\}\s*\]/);
   assert.match(worker, /persistCompletedRender/);
   assert.match(worker, /env\.MEDIA\.put\(stored, provider\.body/);
   assert.match(wrangler, /"\/render-media\/\*"/);
-  assert.match(wrangler, /"SHOTSTACK_ENVIRONMENT": "stage"/);
+  assert.match(wrangler, /"SHOTSTACK_ENVIRONMENT":\s*"v1"/);
 });
 
 test("customers can poll, privately download, and create an unlisted share page with QR", () => {

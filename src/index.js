@@ -131,7 +131,7 @@ function getImageDimensions(buffer, mime) {
   return null;
 }
 
-async function createFramedImage(env, sourceObject, borderColor = "#ffffff", borderWidth = 24) {
+async function createFramedImage(env, sourceObject, frameStyle = "classic") {
   if (!env.IMAGES) {
     throw Object.assign(
       new Error("Cloudflare Images is not configured."),
@@ -146,12 +146,79 @@ async function createFramedImage(env, sourceObject, borderColor = "#ffffff", bor
     );
   }
 
+  const frame = {
+    classic: {
+      color: "#ffffff",
+      top: 24,
+      right: 24,
+      bottom: 24,
+      left: 24
+    },
+
+    blackborder: {
+      color: "#111111",
+      top: 24,
+      right: 24,
+      bottom: 24,
+      left: 24
+    },
+
+    gold: {
+      color: "#c9a227",
+      top: 24,
+      right: 24,
+      bottom: 24,
+      left: 24
+    },
+
+    sagecream: {
+      color: "#f4efe3",
+      top: 29,
+      right: 29,
+      bottom: 29,
+      left: 29
+    },
+
+    polaroid: {
+      color: "#ffffff",
+      top: 24,
+      right: 24,
+      bottom: 72,
+      left: 24
+    },
+
+    weddingivory: {
+      color: "#fffaf0",
+      top: 27,
+      right: 27,
+      bottom: 27,
+      left: 27
+    },
+
+    memorialdusk: {
+      color: "#26342f",
+      top: 26,
+      right: 26,
+      bottom: 26,
+      left: 26
+    }
+  }[frameStyle] || {
+    color: "#ffffff",
+    top: 24,
+    right: 24,
+    bottom: 24,
+    left: 24
+  };
+
   const input = env.IMAGES.input(sourceObject.body);
 
   const transformed = input.transform({
     border: {
-      color: borderColor,
-      width: borderWidth
+      color: frame.color,
+      top: frame.top,
+      right: frame.right,
+      bottom: frame.bottom,
+      left: frame.left
     }
   });
 
@@ -167,17 +234,21 @@ async function ensureFramedRenderAsset(
   asset,
   frameStyle
 ) {
-  const borderColor =
-    frameStyle === "blackborder"
-      ? "#111111"
-      : frameStyle === "gold"
-        ? "#c9a227"
-        : "#ffffff";
+  const frameVersions = {
+    classic: "v2-white-24",
+    blackborder: "v2-black-24",
+    gold: "v2-gold-24",
+    sagecream: "v2-sagecream-29",
+    polaroid: "v2-polaroid-24-24-72-24",
+    weddingivory: "v2-weddingivory-27",
+    memorialdusk: "v2-memorialdusk-26"
+  };
 
-  const borderWidth = 24;
+  const frameVersion =
+    frameVersions[frameStyle] || `v2-${safe(frameStyle)}`;
 
   const styleKey = safe(
-    `${frameStyle}-${borderColor.replace("#", "")}-${borderWidth}`
+    `${frameStyle}-${frameVersion}`
   );
 
   const stored =
@@ -207,8 +278,7 @@ async function ensureFramedRenderAsset(
   const framed = await createFramedImage(
     env,
     sourceObject,
-    borderColor,
-    borderWidth
+    frameStyle
   );
 
   await env.MEDIA.put(outputKey, framed.response().body, {
@@ -221,14 +291,12 @@ async function ensureFramedRenderAsset(
       sourceAssetId: asset.id,
       operation: "render-frame",
       frameStyle,
-      borderColor,
-      borderWidth: String(borderWidth)
+      frameVersion
     }
   });
 
   return stored;
 }
-
 const MAX_BACKGROUND_INPUT_BYTES = 22 * 1024 * 1024;
 const ALLOWED_MIME = /^(image\/(jpeg|png|webp)|video\/(mp4|webm|quicktime)|audio\/(mpeg|mp4|wav|x-wav))$/;
 

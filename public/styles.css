@@ -109,3 +109,63 @@ button,.soft-button,.primary-button,.danger-button{min-height:36px;padding:8px 1
   background: #c9a227;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
 }
+
+/* Expanded Always & Forever media frames */
+
+.canvas-media-frame-sagecream > img,
+.canvas-media-frame-sagecream > video {
+  padding: 24px;
+  background: #f4efe3;
+  border: 5px solid #71877a;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32);
+}
+
+.canvas-media-frame-polaroid > img,
+.canvas-media-frame-polaroid > video {
+  padding: 24px 24px 72px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+}
+
+.canvas-media-frame-weddingivory > img,
+.canvas-media-frame-weddingivory > video {
+  padding: 24px;
+  background: #fffaf0;
+  border: 3px double #d7bf91;
+  box-shadow: 0 12px 32px rgba(70, 54, 35, 0.28);
+}
+
+.canvas-media-frame-memorialdusk > img,
+.canvas-media-frame-memorialdusk > video {
+  padding: 24px;
+  background: #26342f;
+  border: 2px solid #8d9b94;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+}
+
+.canvas-media-frame-celebration > img,
+.canvas-media-frame-celebration > video {
+  padding: 24px;
+  background: linear-gradient(135deg, #fff7dc, #ead5a0);
+  border: 3px solid #c39a4d;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+}
+
+.canvas-media-frame-softvignette > img,
+.canvas-media-frame-softvignette > video {
+  padding: 24px;
+  background: #202722;
+  border-radius: 18px;
+  box-shadow:
+    inset 0 0 34px rgba(0, 0, 0, 0.65),
+    0 12px 34px rgba(0, 0, 0, 0.38);
+}
+
+.canvas-media-frame-soft > img,
+.canvas-media-frame-soft > video {
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+}
