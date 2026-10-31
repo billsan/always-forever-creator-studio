@@ -131,7 +131,219 @@ function getImageDimensions(buffer, mime) {
   return null;
 }
 
-async function createFramedImage(env, sourceObject, frameStyle = "classic") {
+async function loadPhoton() {
+  return import("@cf-wasm/photon/workerd");
+}
+
+function framedImageResponse(bytes) {
+  return {
+    response() {
+      return new Response(bytes, {
+        headers: {
+          "content-type": "image/png"
+        }
+      });
+    }
+  };
+}
+
+function copyPixelsIntoFrame(
+  sourcePixels,
+  sourceWidth,
+  sourceHeight,
+  outputPixels,
+  outputWidth,
+  offsetX,
+  offsetY
+) {
+  for (let y = 0; y < sourceHeight; y += 1) {
+    const sourceStart = y * sourceWidth * 4;
+    const sourceEnd = sourceStart + sourceWidth * 4;
+    const outputStart =
+      ((y + offsetY) * outputWidth + offsetX) * 4;
+
+    outputPixels.set(
+      sourcePixels.subarray(sourceStart, sourceEnd),
+      outputStart
+    );
+  }
+}
+
+function applyRoundedAlpha(
+  pixels,
+  width,
+  height,
+  radius
+) {
+  const r = Math.max(
+    1,
+    Math.min(radius, Math.floor(width / 2), Math.floor(height / 2))
+  );
+
+  const corners = [
+    { cx: r, cy: r, left: true, top: true },
+    { cx: width - r - 1, cy: r, left: false, top: true },
+    { cx: r, cy: height - r - 1, left: true, top: false },
+    {
+      cx: width - r - 1,
+      cy: height - r - 1,
+      left: false,
+      top: false
+    }
+  ];
+
+  for (const corner of corners) {
+    const startX = corner.left ? 0 : width - r;
+    const endX = corner.left ? r : width;
+    const startY = corner.top ? 0 : height - r;
+    const endY = corner.top ? r : height;
+
+    for (let y = startY; y < endY; y += 1) {
+      for (let x = startX; x < endX; x += 1) {
+        const dx = x - corner.cx;
+        const dy = y - corner.cy;
+
+        if ((dx * dx) + (dy * dy) > r * r) {
+          pixels[(y * width + x) * 4 + 3] = 0;
+        }
+      }
+    }
+  }
+}
+
+function createDecorativeFramePixels(
+  sourcePixels,
+  sourceWidth,
+  sourceHeight,
+  frameStyle
+) {
+  const padding = 24;
+  const outputWidth = sourceWidth + padding * 2;
+  const outputHeight = sourceHeight + padding * 2;
+  const outputPixels =
+    new Uint8Array(outputWidth * outputHeight * 4);
+
+  if (frameStyle === "celebration") {
+    const start = [255, 247, 220];
+    const end = [234, 213, 160];
+
+    for (let y = 0; y < outputHeight; y += 1) {
+      for (let x = 0; x < outputWidth; x += 1) {
+        const t =
+          (x + y) /
+          Math.max(1, outputWidth + outputHeight - 2);
+
+        const index = (y * outputWidth + x) * 4;
+
+        outputPixels[index] =
+          Math.round(start[0] + (end[0] - start[0]) * t);
+        outputPixels[index + 1] =
+          Math.round(start[1] + (end[1] - start[1]) * t);
+        outputPixels[index + 2] =
+          Math.round(start[2] + (end[2] - start[2]) * t);
+        outputPixels[index + 3] = 255;
+      }
+    }
+
+    const gold = [195, 154, 77];
+
+    for (let y = 0; y < outputHeight; y += 1) {
+      for (let x = 0; x < outputWidth; x += 1) {
+        const isGoldBorder =
+          x < 3 ||
+          y < 3 ||
+          x >= outputWidth - 3 ||
+          y >= outputHeight - 3;
+
+        if (!isGoldBorder) continue;
+
+        const index = (y * outputWidth + x) * 4;
+        outputPixels[index] = gold[0];
+        outputPixels[index + 1] = gold[1];
+        outputPixels[index + 2] = gold[2];
+        outputPixels[index + 3] = 255;
+      }
+    }
+  } else if (frameStyle === "softvignette") {
+    for (let y = 0; y < outputHeight; y += 1) {
+      for (let x = 0; x < outputWidth; x += 1) {
+        const index = (y * outputWidth + x) * 4;
+        outputPixels[index] = 32;
+        outputPixels[index + 1] = 39;
+        outputPixels[index + 2] = 34;
+        outputPixels[index + 3] = 255;
+      }
+    }
+  } else {
+    for (let y = 0; y < outputHeight; y += 1) {
+      for (let x = 0; x < outputWidth; x += 1) {
+        const index = (y * outputWidth + x) * 4;
+        outputPixels[index] = 255;
+        outputPixels[index + 1] = 255;
+        outputPixels[index + 2] = 255;
+        outputPixels[index + 3] = 36;
+      }
+    }
+
+    for (let y = 0; y < outputHeight; y += 1) {
+      for (let x = 0; x < outputWidth; x += 1) {
+        const isBorder =
+          x < 2 ||
+          y < 2 ||
+          x >= outputWidth - 2 ||
+          y >= outputHeight - 2;
+
+        if (!isBorder) continue;
+
+        const index = (y * outputWidth + x) * 4;
+        outputPixels[index] = 255;
+        outputPixels[index + 1] = 255;
+        outputPixels[index + 2] = 255;
+        outputPixels[index + 3] = 204;
+      }
+    }
+  }
+
+  copyPixelsIntoFrame(
+    sourcePixels,
+    sourceWidth,
+    sourceHeight,
+    outputPixels,
+    outputWidth,
+    padding,
+    padding
+  );
+
+  if (frameStyle === "softvignette") {
+    applyRoundedAlpha(
+      outputPixels,
+      outputWidth,
+      outputHeight,
+      18
+    );
+  }
+
+  if (frameStyle === "soft") {
+    applyRoundedAlpha(
+      outputPixels,
+      outputWidth,
+      outputHeight,
+      20
+    );
+  }
+
+  return {
+    pixels: outputPixels,
+    width: outputWidth,
+    height: outputHeight
+  };
+}
+
+async function createFramedImage(
+  env,
+  sourceObject,
+  frameStyle = "classic"
+) {
   if (!env.IMAGES) {
     throw Object.assign(
       new Error("Cloudflare Images is not configured."),
@@ -144,6 +356,100 @@ async function createFramedImage(env, sourceObject, frameStyle = "classic") {
       new Error("The source photo could not be loaded."),
       { status: 404 }
     );
+  }
+
+  const decorativeStyles = new Set([
+    "celebration",
+    "softvignette",
+    "soft"
+  ]);
+
+  if (decorativeStyles.has(frameStyle)) {
+    const {
+      PhotonImage,
+      SamplingFilter,
+      resize,
+      apply_vignette
+    } = await loadPhoton();
+
+    const sourceBytes = new Uint8Array(
+      await new Response(sourceObject.body).arrayBuffer()
+    );
+
+    let sourceImage =
+      PhotonImage.new_from_byteslice(sourceBytes);
+
+    let workingImage = sourceImage;
+
+    try {
+      const originalWidth = sourceImage.get_width();
+      const originalHeight = sourceImage.get_height();
+      const maxDimension = Math.max(
+        originalWidth,
+        originalHeight
+      );
+
+      if (maxDimension > 2400) {
+        const scale = 2400 / maxDimension;
+
+        const resizedWidth = Math.max(
+          1,
+          Math.round(originalWidth * scale)
+        );
+
+        const resizedHeight = Math.max(
+          1,
+          Math.round(originalHeight * scale)
+        );
+
+        workingImage = resize(
+          sourceImage,
+          resizedWidth,
+          resizedHeight,
+          SamplingFilter.Lanczos3
+        );
+      }
+
+      const sourceWidth = workingImage.get_width();
+      const sourceHeight = workingImage.get_height();
+      const sourcePixels = workingImage.get_raw_pixels();
+
+      const framed = createDecorativeFramePixels(
+        sourcePixels,
+        sourceWidth,
+        sourceHeight,
+        frameStyle
+      );
+
+      let outputImage = new PhotonImage(
+        framed.pixels,
+        framed.width,
+        framed.height
+      );
+
+      try {
+        if (frameStyle === "softvignette") {
+          apply_vignette(
+            outputImage,
+            0.55,
+            0.82,
+            0.65
+          );
+        }
+
+        const outputBytes = outputImage.get_bytes();
+
+        return framedImageResponse(outputBytes);
+      } finally {
+        outputImage.free();
+      }
+    } finally {
+      if (workingImage !== sourceImage) {
+        workingImage.free();
+      }
+
+      sourceImage.free();
+    }
   }
 
   const frame = {
@@ -226,7 +532,6 @@ async function createFramedImage(env, sourceObject, frameStyle = "classic") {
     format: "image/png"
   });
 }
-
 async function ensureFramedRenderAsset(
   env,
   owner,
@@ -235,14 +540,17 @@ async function ensureFramedRenderAsset(
   frameStyle
 ) {
   const frameVersions = {
-    classic: "v2-white-24",
-    blackborder: "v2-black-24",
-    gold: "v2-gold-24",
-    sagecream: "v2-sagecream-29",
-    polaroid: "v2-polaroid-24-24-72-24",
-    weddingivory: "v2-weddingivory-27",
-    memorialdusk: "v2-memorialdusk-26"
-  };
+  classic: "v2-white-24",
+  blackborder: "v2-black-24",
+  gold: "v2-gold-24",
+  sagecream: "v2-sagecream-29",
+  polaroid: "v2-polaroid-24-24-72-24",
+  weddingivory: "v2-weddingivory-27",
+  memorialdusk: "v2-memorialdusk-26",
+  celebration: "v3-celebration-gradient-gold",
+  softvignette: "v3-softvignette-rounded",
+  soft: "v3-soft-rounded-alpha"
+};
 
   const frameVersion =
     frameVersions[frameStyle] || `v2-${safe(frameStyle)}`;

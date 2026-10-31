@@ -10,6 +10,7 @@
     "check": "node --check src/index.js && node --check public/app.js && node --test tests/*.test.mjs"
   },
   "dependencies": {
+    "@cf-wasm/photon": "^0.4.0",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
