@@ -25,3 +25,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.bak
+
+# Local development backups and generated debug files
+*.before-*
+project-data*.txt
+worker-configuration.d.ts
