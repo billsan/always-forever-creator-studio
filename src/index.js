@@ -1,5 +1,234 @@
 const VERSION = "1.7.4.2";
 const MAX_UPLOAD_BYTES = 95 * 1024 * 1024;
+function getImageDimensions(buffer, mime) {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+
+  // PNG
+  if (mime === "image/png" && bytes.length >= 24) {
+    const width = view.getUint32(16, false);
+    const height = view.getUint32(20, false);
+    return width && height ? { width, height } : null;
+  }
+
+  // JPEG
+  if (mime === "image/jpeg" && bytes.length >= 4) {
+    if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+
+    let offset = 2;
+
+    while (offset + 9 < bytes.length) {
+      if (bytes[offset] !== 0xff) {
+        offset++;
+        continue;
+      }
+
+      const marker = bytes[offset + 1];
+
+      // Standalone markers.
+      if (
+        marker === 0xd8 ||
+        marker === 0xd9 ||
+        marker === 0x01 ||
+        (marker >= 0xd0 && marker <= 0xd7)
+      ) {
+        offset += 2;
+        continue;
+      }
+
+      if (offset + 4 > bytes.length) break;
+
+      const segmentLength = view.getUint16(offset + 2, false);
+
+      if (segmentLength < 2 || offset + 2 + segmentLength > bytes.length) {
+        break;
+      }
+
+      const isStartOfFrame =
+        (marker >= 0xc0 && marker <= 0xc3) ||
+        (marker >= 0xc5 && marker <= 0xc7) ||
+        (marker >= 0xc9 && marker <= 0xcb) ||
+        (marker >= 0xcd && marker <= 0xcf);
+
+      if (isStartOfFrame && segmentLength >= 7) {
+        const height = view.getUint16(offset + 5, false);
+        const width = view.getUint16(offset + 7, false);
+
+        return width && height ? { width, height } : null;
+      }
+
+      offset += 2 + segmentLength;
+    }
+
+    return null;
+  }
+
+  // WebP
+  if (
+    mime === "image/webp" &&
+    bytes.length >= 30 &&
+    String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+    String.fromCharCode(...bytes.slice(8, 12)) === "WEBP"
+  ) {
+    const chunk = String.fromCharCode(...bytes.slice(12, 16));
+
+    // VP8X extended WebP
+    if (chunk === "VP8X" && bytes.length >= 30) {
+      const width =
+        1 +
+        bytes[24] +
+        (bytes[25] << 8) +
+        (bytes[26] << 16);
+
+      const height =
+        1 +
+        bytes[27] +
+        (bytes[28] << 8) +
+        (bytes[29] << 16);
+
+      return width && height ? { width, height } : null;
+    }
+
+    // VP8L lossless WebP
+    if (
+      chunk === "VP8L" &&
+      bytes.length >= 25 &&
+      bytes[20] === 0x2f
+    ) {
+      const b1 = bytes[21];
+      const b2 = bytes[22];
+      const b3 = bytes[23];
+      const b4 = bytes[24];
+
+      const width = 1 + (((b2 & 0x3f) << 8) | b1);
+      const height =
+        1 +
+        (((b4 & 0x0f) << 10) |
+          (b3 << 2) |
+          ((b2 & 0xc0) >> 6));
+
+      return width && height ? { width, height } : null;
+    }
+
+    // VP8 lossy WebP
+    if (
+      chunk === "VP8 " &&
+      bytes.length >= 30 &&
+      bytes[23] === 0x9d &&
+      bytes[24] === 0x01 &&
+      bytes[25] === 0x2a
+    ) {
+      const width =
+        view.getUint16(26, true) & 0x3fff;
+
+      const height =
+        view.getUint16(28, true) & 0x3fff;
+
+      return width && height ? { width, height } : null;
+    }
+  }
+
+  return null;
+}
+
+async function createFramedImage(env, sourceObject, borderColor = "#ffffff", borderWidth = 24) {
+  if (!env.IMAGES) {
+    throw Object.assign(
+      new Error("Cloudflare Images is not configured."),
+      { status: 503 }
+    );
+  }
+
+  if (!sourceObject) {
+    throw Object.assign(
+      new Error("The source photo could not be loaded."),
+      { status: 404 }
+    );
+  }
+
+  const input = env.IMAGES.input(sourceObject.body);
+
+  const transformed = input.transform({
+    border: {
+      color: borderColor,
+      width: borderWidth
+    }
+  });
+
+  return transformed.output({
+    format: "image/png"
+  });
+}
+
+async function ensureFramedRenderAsset(
+  env,
+  owner,
+  projectId,
+  asset,
+  frameStyle
+) {
+  const borderColor =
+    frameStyle === "blackborder"
+      ? "#111111"
+      : frameStyle === "gold"
+        ? "#c9a227"
+        : "#ffffff";
+
+  const borderWidth = 24;
+
+  const styleKey = safe(
+    `${frameStyle}-${borderColor.replace("#", "")}-${borderWidth}`
+  );
+
+  const stored =
+    `render-frame-${asset.id}-${styleKey}.png`;
+
+  const outputKey =
+    `${owner}/${projectId}/${stored}`;
+
+  const existing = await env.MEDIA.head(outputKey);
+
+  if (existing) {
+    return stored;
+  }
+
+  const sourceKey =
+    `${owner}/${projectId}/${asset.stored}`;
+
+  const sourceObject = await env.MEDIA.get(sourceKey);
+
+  if (!sourceObject) {
+    throw Object.assign(
+      new Error("The source photo could not be loaded for rendering."),
+      { status: 404 }
+    );
+  }
+
+  const framed = await createFramedImage(
+    env,
+    sourceObject,
+    borderColor,
+    borderWidth
+  );
+
+  await env.MEDIA.put(outputKey, framed.response().body, {
+    httpMetadata: {
+      contentType: "image/png"
+    },
+    customMetadata: {
+      owner,
+      projectId,
+      sourceAssetId: asset.id,
+      operation: "render-frame",
+      frameStyle,
+      borderColor,
+      borderWidth: String(borderWidth)
+    }
+  });
+
+  return stored;
+}
+
 const MAX_BACKGROUND_INPUT_BYTES = 22 * 1024 * 1024;
 const ALLOWED_MIME = /^(image\/(jpeg|png|webp)|video\/(mp4|webm|quicktime)|audio\/(mpeg|mp4|wav|x-wav))$/;
 
@@ -279,8 +508,15 @@ async function loadProject(env, owner, id) {
   return row ? JSON.parse(row.project_json) : null;
 }
 
+async function loadProjectByGrant(env, owner, grantId) {
+  const row = await env.DB.prepare(
+    "SELECT project_json FROM projects WHERE owner_id = ? AND json_extract(project_json, '$.entitlement.grantId') = ? ORDER BY updated_at DESC LIMIT 1"
+  ).bind(owner, String(grantId)).first();
+
+  return row ? JSON.parse(row.project_json) : null;
+}
 async function saveProject(env, project) {
-  project.updatedAt = now();
+project.updatedAt = now();
   await env.DB.prepare(`INSERT INTO projects (id, owner_id, title, occasion, project_json, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET title=excluded.title, occasion=excluded.occasion,
@@ -330,6 +566,54 @@ async function serveMedia(request, env, owner, projectId, stored) {
   return new Response(object.body, { status: rangeHeader ? 206 : 200, headers: mediaHeaders(object, request) });
 }
 
+async function serveRenderDerivative(request, env, owner, projectId, stored) {
+  if (!String(stored).startsWith("render-frame-")) {
+    return json({ message: "Media not found." }, 404);
+  }
+
+  const project = await loadProject(env, owner, projectId);
+  if (!project) {
+    return json({ message: "Media not found." }, 404);
+  }
+
+  const key = `${owner}/${projectId}/${stored}`;
+  const rangeHeader = request.headers.get("range");
+  let range;
+
+  if (rangeHeader) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader);
+
+    if (!match) {
+      return new Response(null, { status: 416 });
+    }
+
+    if (match[1] && match[2]) {
+      range = {
+        offset: Number(match[1]),
+        length: Number(match[2]) - Number(match[1]) + 1
+      };
+    } else if (match[1]) {
+      range = { offset: Number(match[1]) };
+    } else if (match[2]) {
+      range = { suffix: Number(match[2]) };
+    }
+  }
+
+  const object = await env.MEDIA.get(
+    key,
+    range ? { range } : undefined
+  );
+
+  if (!object) {
+    return json({ message: "Media not found." }, 404);
+  }
+
+  return new Response(object.body, {
+    status: rangeHeader ? 206 : 200,
+    headers: mediaHeaders(object, request)
+  });
+}
+
 async function serveSafeMusic(request, env, stored) {
   const rangeHeader = request.headers.get("range");
   let range;
@@ -364,54 +648,235 @@ function shotstackPosition(item) {
   if (item.position === "custom") return { position: "center", offset: { x: Math.max(-.48, Math.min(.48, Number(item.x || 50) / 100 - .5)), y: Math.max(-.48, Math.min(.48, .5 - Number(item.y || 50) / 100)) } };
   return { position: known[item.position] || "center" };
 }
-
 async function buildShotstackEdit(project, requestUrl, env, aspectRatio = project.aspectRatio || "16:9") {
   const assets = new Map(project.assets.map((asset) => [asset.id, asset]));
+  const renderSizes = {
+  "16:9": { width: 1920, height: 1080 },
+  "9:16": { width: 1080, height: 1920 },
+  "4:5": { width: 1080, height: 1350 },
+  "1:1": { width: 1080, height: 1080 }
+};
+
+const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
   const visualClips = [];
   const textClips = [];
   const audioClips = [];
+
   let cursor = 0;
+
   for (const item of project.timeline || []) {
-    const length = Math.max(.5, Number(item.duration || 5));
+    const length = Math.max(0.5, Number(item.duration || 5));
+
     if (item.type === "audio") {
       const asset = assets.get(item.assetId);
-      if (asset) audioClips.push({ asset: { type: "audio", src: await signedRenderMediaUrl(requestUrl, env, project.ownerId, project.id, asset.stored), volume: Math.max(0, Math.min(1, Number(item.volume ?? .32))) }, start: Math.max(0, Number(item.start || 0)), length });
+
+      if (asset) {
+        audioClips.push({
+          asset: {
+            type: "audio",
+            src: await signedRenderMediaUrl(
+              requestUrl,
+              env,
+              project.ownerId,
+              project.id,
+              asset.stored
+            ),
+            volume: Math.max(
+              0,
+              Math.min(1, Number(item.volume ?? 0.32))
+            )
+          },
+          start: Math.max(0, Number(item.start || 0)),
+          length
+        });
+      }
+
       continue;
     }
+
     if (item.type === "text" && item.overlay) {
-      textClips.push({ asset: { type: "rich-text", text: String(item.text || " ").slice(0, 1000), font: { family: "Roboto", size: Math.max(12, Math.min(200, Number(item.fontSize || 42))), color: /^#[0-9a-f]{6}$/i.test(item.color || "") ? item.color : "#ffffff" } }, start: Math.max(0, Number(item.start || 0)), length, transition: { in: "fade", out: "fade" }, ...shotstackPosition(item) });
+      textClips.push({
+        asset: {
+          type: "rich-text",
+          text: String(item.text || " ").slice(0, 1000),
+          font: {
+            family: "Roboto",
+            size: Math.max(
+              12,
+              Math.min(200, Number(item.fontSize || 42))
+            ),
+            color: /^#[0-9a-f]{6}$/i.test(item.color || "")
+              ? item.color
+              : "#ffffff"
+          }
+        },
+        start: Math.max(0, Number(item.start || 0)),
+        length,
+        transition: {
+          in: "fade",
+          out: "fade"
+        },
+        ...shotstackPosition(item)
+      });
+
       continue;
     }
+
     if (item.type === "text") {
-      textClips.push({ asset: { type: "rich-text", text: String(item.text || " ").slice(0, 1000), font: { family: "Roboto", size: Math.max(12, Math.min(200, Number(item.fontSize || 54))), color: /^#[0-9a-f]{6}$/i.test(item.color || "") ? item.color : "#ffffff" } }, start: cursor, length, transition: { in: "fade", out: "fade" }, position: "center" });
+      textClips.push({
+        asset: {
+          type: "rich-text",
+          text: String(item.text || " ").slice(0, 1000),
+          font: {
+            family: "Roboto",
+            size: Math.max(
+              12,
+              Math.min(200, Number(item.fontSize || 54))
+            ),
+            color: /^#[0-9a-f]{6}$/i.test(item.color || "")
+              ? item.color
+              : "#ffffff"
+          }
+        },
+        start: cursor,
+        length,
+        transition: {
+          in: "fade",
+          out: "fade"
+        },
+        position: "center"
+      });
+
       cursor += length;
       continue;
     }
+
     if (item.type === "collage") {
-      const ids = (item.slots || []).filter(Boolean).slice(0, 4);
+      const ids = (item.slots || [])
+        .filter(Boolean)
+        .slice(0, 4);
+
       for (let index = 0; index < ids.length; index++) {
         const asset = assets.get(ids[index]);
+
         if (!asset) continue;
-        const positions = ids.length === 2 ? ["left", "right"] : ["topLeft", "topRight", "bottomLeft", "bottomRight"];
-        visualClips.push({ asset: { type: "image", src: await signedRenderMediaUrl(requestUrl, env, project.ownerId, project.id, asset.stored) }, start: cursor, length, fit: "contain", scale: ids.length === 2 ? .48 : .42, position: positions[index], transition: { in: transitionName(item.transition), out: transitionName(item.transition) } });
+
+        const positions =
+          ids.length === 2
+            ? ["left", "right"]
+            : ["topLeft", "topRight", "bottomLeft", "bottomRight"];
+
+        visualClips.push({
+          asset: {
+            type: "image",
+            src: await signedRenderMediaUrl(
+              requestUrl,
+              env,
+              project.ownerId,
+              project.id,
+              asset.stored
+            )
+          },
+          start: cursor,
+          length,
+          fit: "contain",
+          scale: ids.length === 2 ? 0.48 : 0.42,
+          position: positions[index],
+          transition: {
+            in: transitionName(item.transition),
+            out: transitionName(item.transition)
+          }
+        });
       }
+
       cursor += length;
       continue;
     }
-    const asset = assets.get(item.assetId);
-    if (item.type === "visual" && asset) {
-      const clip = { asset: { type: asset.kind === "video" ? "video" : "image", src: await signedRenderMediaUrl(requestUrl, env, project.ownerId, project.id, asset.stored) }, start: cursor, length, fit: item.fit === "cover" ? "crop" : "contain", transition: { in: transitionName(item.transition), out: transitionName(item.transition) } };
-      if (asset.kind === "video") { clip.asset.transcode = true; clip.asset.volume = Math.max(0, Math.min(1, Number(item.volume ?? 1))); }
-      const effect = shotstackEffect(item); if (effect) clip.effect = effect;
-      visualClips.push(clip);
-    }
-    cursor += length;
-  }
-  if (!visualClips.length && !textClips.length) throw Object.assign(new Error("Add at least one completed photo, video, or title slide before rendering."), { status: 400 });
-  const tracks = [...textClips.map((clip) => ({ clips: [clip] })), ...visualClips.map((clip) => ({ clips: [clip] })), ...audioClips.map((clip) => ({ clips: [clip] }))];
-  return { timeline: { background: solidBackground(project.canvas?.background), tracks }, output: { format: "mp4", resolution: "hd", aspectRatio, fps: 25, quality: "high", destinations: [{ provider: "shotstack", exclude: true }] } };
-}
 
+    const asset = assets.get(item.assetId);
+
+    if (item.type === "visual" && asset) {
+  const frameStyle = String(item.frameStyle || "none");
+
+  const useFramedDerivative =
+    asset.kind === "photo" &&
+    frameStyle !== "none" &&
+    frameStyle !== "backgroundphoto" &&
+    item.fit !== "cover";
+
+  const renderStored = useFramedDerivative
+    ? await ensureFramedRenderAsset(
+        env,
+        project.ownerId,
+        project.id,
+        asset,
+        frameStyle
+      )
+    : asset.stored;
+
+  const sourceUrl = await signedRenderMediaUrl(
+    requestUrl,
+    env,
+    project.ownerId,
+    project.id,
+    renderStored
+  );
+
+  const clip = {
+    asset: {
+      type: asset.kind === "video" ? "video" : "image",
+      src: sourceUrl
+    },
+    start: cursor,
+    length,
+    fit: item.fit === "cover" ? "crop" : "contain",
+    position: "center",
+    transition: {
+      in: transitionName(item.transition),
+      out: transitionName(item.transition)
+    }
+  };
+
+  visualClips.push(clip);
+}
+cursor += length;
+  }
+
+  if (!visualClips.length && !textClips.length) {
+    throw Object.assign(
+      new Error(
+        "Add at least one completed photo, video, or title slide before rendering."
+      ),
+      { status: 400 }
+    );
+  }
+
+  const tracks = [
+  ...textClips.map((clip) => ({ clips: [clip] })),
+  ...visualClips.map((clip) => ({ clips: [clip] })),
+  ...audioClips.map((clip) => ({ clips: [clip] }))
+];
+
+  return {
+    timeline: {
+      background: solidBackground(project.canvas?.background),
+      tracks
+    },
+    output: {
+      format: "mp4",
+      resolution: "hd",
+      aspectRatio,
+      fps: 25,
+      quality: "high",
+      destinations: [
+        {
+          provider: "shotstack",
+          exclude: true
+        }
+      ]
+    }
+  };
+}
 function shotstackBase(env) {
   const stage = env.SHOTSTACK_ENVIRONMENT === "v1" ? "v1" : "stage";
   return `https://api.shotstack.io/edit/${stage}`;
@@ -695,8 +1160,14 @@ async function api(request, env, url) {
   if (url.pathname === "/api/projects" && request.method === "POST") {
     const body = await parseJson(request);
     if (session.role !== "administrator") {
+  const existingProject = await loadProjectByGrant(env, owner, session.grantId);
+  if (existingProject) {
+    return json({ project: existingProject }, 200);
+  }
+}
+    if (session.role !== "administrator") {
       const claimed = await env.DB.prepare("UPDATE studio_grants SET projects_created = projects_created + 1, updated_at = ? WHERE id = ? AND owner_id = ? AND status = 'active' AND projects_created < project_limit").bind(now(), session.grantId, owner).run();
-      if (!claimed.meta?.changes) return json({ message: "This purchase has already been used for its video project." }, 403);
+      if (!claimed.meta?.changes) return json({ message: "This package has reached its project limit." }, 403);
     }
     const project = projectTemplate(owner, String(body.title || "My Story").slice(0, 160));
     project.entitlement = session.role === "administrator" ? { paid: true, administrator: true, grantId: session.grantId } : { paid: true, grantId: session.grantId, ...session.package };
@@ -711,6 +1182,7 @@ async function api(request, env, url) {
   if (parts.length === 3 && request.method === "GET") return json({ project });
   if (parts.length === 3 && request.method === "PUT") {
     const body = await parseJson(request);
+    
     if (session.role !== "administrator" && Array.isArray(body.timeline)) {
       const visualSeconds = body.timeline.filter((item) => ["visual", "placeholder", "collage"].includes(item.type) || (item.type === "text" && !item.overlay)).reduce((sum, item) => sum + Math.max(0, Number(item.duration || 0)), 0);
       const allowedSeconds = Number(project.entitlement?.minutes || 0) * 60;
@@ -779,8 +1251,10 @@ async function api(request, env, url) {
     const extension = filename.includes(".") ? `.${filename.split(".").pop().toLowerCase()}` : "";
     const stored = `${assetId}${extension}`;
     const key = `${owner}/${id}/${stored}`;
-    await env.MEDIA.put(key, request.body, { httpMetadata: { contentType: mime }, customMetadata: { owner, projectId: id, filename } });
-    const asset = { id: assetId, filename, stored, mime, kind, bytes: length, url: `/media/${encodeURIComponent(owner)}/${encodeURIComponent(id)}/${encodeURIComponent(stored)}`, createdAt: now() };
+    const uploadBytes = await request.arrayBuffer();
+await env.MEDIA.put(key, uploadBytes, { httpMetadata: { contentType: mime }, customMetadata: { owner, projectId: id, filename } });
+const dimensions = kind === "photo" ? getImageDimensions(uploadBytes, mime) : null;
+    const asset = { id: assetId, filename, stored, mime, kind, bytes: length, width: dimensions?.width || null, height: dimensions?.height || null, url: `/media/${encodeURIComponent(owner)}/${encodeURIComponent(id)}/${encodeURIComponent(stored)}`, createdAt: now() };
     project.assets.push(asset);
     await saveProject(env, project);
     return json({ asset }, 201);
@@ -914,7 +1388,11 @@ export default {
         const parts = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
         if (parts.length !== 4) return json({ message: "Media not found." }, 404);
         const [owner, projectId, stored] = [safe(parts[1]), safe(parts[2]), safe(parts[3])];
-        return await serveMedia(request, env, owner, projectId, stored);
+        if (stored.startsWith("render-frame-")) {
+  return await serveRenderDerivative(request, env, owner, projectId, stored);
+}
+
+return await serveMedia(request, env, owner, projectId, stored);
       }
       if (url.pathname === "/obituary-writer" || url.pathname === "/obituary-writer/") return obituaryWriterPage();
       if (url.pathname.startsWith("/memorial/")) {

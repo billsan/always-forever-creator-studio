@@ -162,7 +162,7 @@
       templates = templateData.templates || [];
       renderTemplates();
       if (!projectData.projects.length) return $("#welcome-dialog").showModal();
-      project = projectData.projects[0];
+      project = projectData.projects[0];  
       normalizeProject();
       renderAll();
       pollRenderStatus();
@@ -691,64 +691,141 @@
     notify(type === "none" ? "Motion background removed from this slide." : "Motion background applied to this slide only.");
   }
 
-  function showCanvasItem(item) {
-    const canvas = $("#canvas");
-    canvas.querySelectorAll(":scope > img,:scope > video,:scope > .canvas-text,:scope > .canvas-placeholder,:scope > .canvas-collage,:scope > .cinematic-reveal").forEach((element) => element.remove());
-    $(".canvas-empty").hidden = Boolean(item);
-    $("#canvas-caption").textContent = item?.caption || "";
-    renderMotionBackground(item);
-    renderEffects(item);
-    if (!item) return;
-    if (item.type === "placeholder") {
-      const placeholder = document.createElement("div");
-      placeholder.className = "canvas-placeholder";
-      placeholder.innerHTML = `<div><strong>+ Add your photo</strong><small>${escapeHtml(item.label || "Select this slot, then choose a photo from Media.")}</small></div>`;
-      canvas.prepend(placeholder);
-      return;
-    }
-    if (item.type === "collage") {
-      const collage = document.createElement("div");
-      collage.className = `canvas-collage layout-${item.layout || 2} frame-${item.frameStyle || "none"}`;
-      if (item.cinematicAction && item.cinematicAction !== "none") collage.classList.add(`cinematic-${item.cinematicAction}`);
-      (item.slots || []).forEach((assetId, index) => {
-        const slot = document.createElement("div");
-        slot.className = "collage-slot";
-        const slotAsset = assetById(assetId);
-        if (slotAsset?.kind === "photo") {
-          const image = document.createElement("img");
-          image.src = slotAsset.url;
-          image.alt = slotAsset.filename || `Photo ${index + 1}`;
-          slot.append(image);
-        } else slot.textContent = `+ Photo ${index + 1}`;
-        collage.append(slot);
-      });
-      canvas.prepend(collage);
-      renderCinematicReveal(item);
-      return;
-    }
-    if (item.type === "text") {
-      const text = document.createElement("div");
-      text.className = "canvas-text";
-      if (item.style?.darkText) text.classList.add("dark-text");
-      text.style.cssText = "z-index:2;padding:10%;font:clamp(24px,5vw,64px) Georgia,serif;text-align:center";
-      text.textContent = item.text || "Your words here";
-      canvas.prepend(text);
-      return;
-    }
-    const asset = assetById(item.assetId);
-    if (!asset) return;
-    const media = document.createElement(asset.kind === "photo" ? "img" : "video");
-    media.src = asset.url;
-    media.style.objectFit = item.fit || "contain";
-    if (asset.kind === "photo") applyPhotoRestore(media, item.photoRestore);
-    if (item.frameStyle && item.frameStyle !== "none") media.classList.add(`frame-${item.frameStyle}`);
-    if (item.cinematicAction && item.cinematicAction !== "none") media.classList.add(`cinematic-${item.cinematicAction}`);
-    if (item.motionBackground?.type && item.motionBackground.type !== "none") media.classList.add("motion-foreground", `motion-foreground-${item.motionBackground.foreground || "framed"}`);
-    if (media.tagName === "VIDEO") { media.controls = true; media.playsInline = true; }
-    canvas.prepend(media);
-    renderCinematicReveal(item);
+ function showCanvasItem(item) {
+  const canvas = $("#canvas");
+
+  canvas
+    .querySelectorAll(
+      ":scope > img,:scope > video,:scope > .canvas-media-frame,:scope > .canvas-text,:scope > .canvas-placeholder,:scope > .canvas-collage,:scope > .cinematic-reveal"
+    )
+    .forEach((element) => element.remove());
+
+  $(".canvas-empty").hidden = Boolean(item);
+  $("#canvas-caption").textContent = item?.caption || "";
+
+  renderMotionBackground(item);
+  renderEffects(item);
+
+  if (!item) return;
+
+  if (item.type === "placeholder") {
+    const placeholder = document.createElement("div");
+    placeholder.className = "canvas-placeholder";
+    placeholder.innerHTML = `<div><strong>+ Add your photo</strong><small>${escapeHtml(
+      item.label || "Select this slot, then choose a photo from Media."
+    )}</small></div>`;
+    canvas.prepend(placeholder);
+    return;
   }
 
+  if (item.type === "collage") {
+    const collage = document.createElement("div");
+    collage.className = `canvas-collage layout-${
+      item.layout || 2
+    } frame-${item.frameStyle || "none"}`;
+
+    if (item.cinematicAction && item.cinematicAction !== "none") {
+      collage.classList.add(`cinematic-${item.cinematicAction}`);
+    }
+
+    (item.slots || []).forEach((assetId, index) => {
+      const slot = document.createElement("div");
+      slot.className = "collage-slot";
+
+      const slotAsset = assetById(assetId);
+
+      if (slotAsset?.kind === "photo") {
+        const image = document.createElement("img");
+        image.src = slotAsset.url;
+        image.alt = slotAsset.filename || `Photo ${index + 1}`;
+        slot.append(image);
+      } else {
+        slot.textContent = `+ Photo ${index + 1}`;
+      }
+
+      collage.append(slot);
+    });
+
+    canvas.prepend(collage);
+    renderCinematicReveal(item);
+    return;
+  }
+
+  if (item.type === "text") {
+    const text = document.createElement("div");
+    text.className = "canvas-text";
+
+    if (item.style?.darkText) {
+      text.classList.add("dark-text");
+    }
+
+    text.style.cssText =
+      "z-index:2;padding:10%;font:clamp(24px,5vw,64px) Georgia,serif;text-align:center";
+
+    text.textContent = item.text || "Your words here";
+    canvas.prepend(text);
+    return;
+  }
+
+  const asset = assetById(item.assetId);
+  if (!asset) return;
+
+  const media = document.createElement(
+    asset.kind === "photo" ? "img" : "video"
+  );
+
+  media.src = asset.url;
+  media.style.objectFit = item.fit || "contain";
+
+  if (asset.kind === "photo") {
+    applyPhotoRestore(media, item.photoRestore);
+  }
+
+  const frameStyle = item.frameStyle || "none";
+  const hasFrame =
+    frameStyle !== "none" &&
+    frameStyle !== "backgroundphoto" &&
+    item.fit !== "cover";
+
+  if (item.cinematicAction && item.cinematicAction !== "none") {
+    media.classList.add(`cinematic-${item.cinematicAction}`);
+  }
+
+  if (
+    item.motionBackground?.type &&
+    item.motionBackground.type !== "none"
+  ) {
+    media.classList.add(
+      "motion-foreground",
+      `motion-foreground-${
+        item.motionBackground.foreground || "framed"
+      }`
+    );
+  }
+
+  if (media.tagName === "VIDEO") {
+    media.controls = true;
+    media.playsInline = true;
+  }
+
+  if (hasFrame) {
+    const frame = document.createElement("div");
+
+    frame.className =
+      `canvas-media-frame canvas-media-frame-${frameStyle}`;
+
+    frame.append(media);
+    canvas.prepend(frame);
+  } else {
+    if (frameStyle !== "none") {
+      media.classList.add(`frame-${frameStyle}`);
+    }
+
+    canvas.prepend(media);
+  }
+
+  renderCinematicReveal(item);
+}
   function renderCinematicReveal(item) {
     const action = item?.cinematicAction || "none";
     if (action === "none") return;
@@ -1360,9 +1437,14 @@ if (!project?.render || project.render.status === "failed") return;    try {
   $("#scrubber").addEventListener("input", () => seekPreview(Number($("#scrubber").value) / 10));
   $("#render-button").addEventListener("click", requestRender);
   $("#new-project-button").addEventListener("click", () => {
-    $("#new-project-name").value = "My New Story";
-    $("#welcome-dialog").showModal();
-  });
+  if (project?.entitlement?.paid === true && project?.entitlement?.administrator !== true) {
+    return notify("Your purchase includes one video project. Continue editing this project to use the photos, songs, and video length included with your package.");
+  }
+
+  $("#new-project-name").value = "My New Story";
+  $("#welcome-dialog").showModal();
+});
+ 
   $("#create-project").addEventListener("click", () => createProject().catch((error) => notify(error.message, "error")));
   initialize();
 })();

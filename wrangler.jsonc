@@ -49,6 +49,11 @@
 			"bucket_name": "aaf-creator-media"
 		}
 	],
+
+	"images": {
+			"binding": "IMAGES"
+},
+
 	"routes": [
 		{
 			"pattern": "studio.alwaysandforever.life",
@@ -59,3 +64,4 @@
 		}
 	]
 }
+
