@@ -1307,20 +1307,20 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
   ).toString();
 
   heavenlyLightTracks.push({
-    clips: [
-      {
-        asset: {
-          type: "luma",
-          src: matteUrl
-        },
-        start: cursor,
-        length: revealLength,
-        fit: "cover",
-        position: "center"
+  clips: [
+    clip,
+    {
+      asset: {
+        type: "luma",
+        src: matteUrl
       },
-      clip
-    ]
-  });
+      start: cursor,
+      length: revealLength,
+      fit: "cover",
+      position: "center"
+    }
+  ]
+});
 } else {
   visualClips.push(clip);
 }
