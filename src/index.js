@@ -549,6 +549,75 @@ async function createFramedImage(
     format: "image/png"
   });
 }
+
+async function createHeavenlyLightJpeg(
+  sourceObject,
+  maxDimension = 1080,
+  quality = 82
+) {
+  const {
+    PhotonImage,
+    resize,
+    SamplingFilter
+  } = await loadPhoton();
+
+  const sourceBytes = new Uint8Array(
+    await sourceObject.arrayBuffer()
+  );
+
+  let sourceImage = null;
+  let resizedImage = null;
+
+  try {
+    sourceImage =
+      PhotonImage.new_from_byteslice(sourceBytes);
+
+    const originalWidth =
+      sourceImage.get_width();
+
+    const originalHeight =
+      sourceImage.get_height();
+
+    const scale = Math.min(
+      1,
+      maxDimension /
+        Math.max(originalWidth, originalHeight)
+    );
+
+    if (scale < 1) {
+      const width = Math.max(
+        1,
+        Math.round(originalWidth * scale)
+      );
+
+      const height = Math.max(
+        1,
+        Math.round(originalHeight * scale)
+      );
+
+      resizedImage = resize(
+        sourceImage,
+        width,
+        height,
+        SamplingFilter.Lanczos3
+      );
+    }
+
+    const outputImage =
+      resizedImage || sourceImage;
+
+    return outputImage.get_bytes_jpeg(quality);
+  } finally {
+    if (resizedImage) {
+      resizedImage.free();
+    }
+
+    if (sourceImage) {
+      sourceImage.free();
+    }
+  }
+}
+
 async function ensureFramedRenderAsset(
   env,
   owner,
@@ -1337,20 +1406,15 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
     );
   }
 
-  const sourceBytes = new Uint8Array(
-    await sourceObject.arrayBuffer()
+ const optimizedBytes =
+  await createHeavenlyLightJpeg(
+    sourceObject,
+    1080,
+    82
   );
 
-  const sourceMime =
-    sourceObject.httpMetadata?.contentType ||
-    (renderStored.toLowerCase().endsWith(".png")
-      ? "image/png"
-      : renderStored.toLowerCase().endsWith(".webp")
-        ? "image/webp"
-        : "image/jpeg");
-
-  const imageDataUri =
-    `data:${sourceMime};base64,${bytesToBase64(sourceBytes)}`;
+const imageDataUri =
+  `data:image/jpeg;base64,${bytesToBase64(optimizedBytes)}`;
 
   const fitMode =
     item.fit === "cover"
