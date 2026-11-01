@@ -1308,7 +1308,6 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
 
   heavenlyLightTracks.push({
   clips: [
-    clip,
     {
       asset: {
         type: "luma",
@@ -1318,7 +1317,8 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
       length: revealLength,
       fit: "cover",
       position: "center"
-    }
+    },
+    clip
   ]
 });
 } else {
