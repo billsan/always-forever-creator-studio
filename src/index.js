@@ -573,10 +573,10 @@ async function createHeavenlyLightJpeg(
     fit: "scale-down"
   });
 
-  const output = transformed.output({
-    format: "image/jpeg",
-    quality
-  });
+  const output = await transformed.output({
+  format: "image/jpeg",
+  quality
+});
 
   const response = output.response();
 
