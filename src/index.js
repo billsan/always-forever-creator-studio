@@ -1401,33 +1401,63 @@ body {
   -webkit-mask-image:
     radial-gradient(
       circle at 50% 45%,
-      transparent 0,
-      transparent var(--radius),
-      #000 calc(var(--radius) + 1px),
+      transparent 0%,
+      transparent 3%,
+      #000 3.5%,
       #000 100%
     );
   mask-image:
     radial-gradient(
       circle at 50% 45%,
-      transparent 0,
-      transparent var(--radius),
-      #000 calc(var(--radius) + 1px),
+      transparent 0%,
+      transparent 3%,
+      #000 3.5%,
       #000 100%
     );
-  --radius: 3%;
   animation:
     heavenlyLightReveal ${revealLength}s ease-out forwards;
 }
 
 @keyframes heavenlyLightReveal {
   0% {
-    --radius: 3%;
+    -webkit-mask-image:
+      radial-gradient(
+        circle at 50% 45%,
+        transparent 0%,
+        transparent 3%,
+        #000 3.5%,
+        #000 100%
+      );
+    mask-image:
+      radial-gradient(
+        circle at 50% 45%,
+        transparent 0%,
+        transparent 3%,
+        #000 3.5%,
+        #000 100%
+      );
   }
 
   100% {
-    --radius: 90%;
+    -webkit-mask-image:
+      radial-gradient(
+        circle at 50% 45%,
+        transparent 0%,
+        transparent 90%,
+        #000 91%,
+        #000 100%
+      );
+    mask-image:
+      radial-gradient(
+        circle at 50% 45%,
+        transparent 0%,
+        transparent 90%,
+        #000 91%,
+        #000 100%
+      );
   }
 }
+
 </style>
 </head>
 <body>
