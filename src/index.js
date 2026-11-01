@@ -1101,6 +1101,7 @@ async function buildShotstackEdit(project, requestUrl, env, aspectRatio = projec
 const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
   const visualClips = [];
   const revealClips = [];
+  const heavenlyLightTracks = [];
   const textClips = [];
   const audioClips = [];
 
@@ -1295,7 +1296,34 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
     }
   }
 
-    visualClips.push(clip);
+    if (
+  asset.kind === "photo" &&
+  String(item.cinematicAction || "none") === "heavenly-light"
+) {
+  const revealLength = Math.min(3.2, Math.max(0.5, length));
+  const matteUrl = new URL(
+    "/render-assets/heavenly-light-matte.mp4",
+    requestUrl
+  ).toString();
+
+  heavenlyLightTracks.push({
+    clips: [
+      {
+        asset: {
+          type: "luma",
+          src: matteUrl
+        },
+        start: cursor,
+        length: revealLength,
+        fit: "cover",
+        position: "center"
+      },
+      clip
+    ]
+  });
+} else {
+  visualClips.push(clip);
+}
 
   if (
     asset.kind === "photo" &&
@@ -1321,6 +1349,7 @@ cursor += length;
   const tracks = [
   ...textClips.map((clip) => ({ clips: [clip] })),
   ...revealClips.map((clip) => ({ clips: [clip] })),
+  ...heavenlyLightTracks,
   ...visualClips.map((clip) => ({ clips: [clip] })),
   ...audioClips.map((clip) => ({ clips: [clip] }))
 ];
