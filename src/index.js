@@ -1024,6 +1024,71 @@ function shotstackPosition(item) {
   if (item.position === "custom") return { position: "center", offset: { x: Math.max(-.48, Math.min(.48, Number(item.x || 50) / 100 - .5)), y: Math.max(-.48, Math.min(.48, .5 - Number(item.y || 50) / 100)) } };
   return { position: known[item.position] || "center" };
 }
+
+function cloudRevealSvg() {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+      <defs>
+        <filter id="blur">
+          <feGaussianBlur stdDeviation="34"/>
+        </filter>
+      </defs>
+
+      <g filter="url(#blur)" fill="#ffffff" fill-opacity="0.92">
+        <ellipse cx="250" cy="270" rx="360" ry="125"/>
+        <ellipse cx="560" cy="235" rx="300" ry="145"/>
+        <ellipse cx="930" cy="340" rx="390" ry="155"/>
+        <ellipse cx="1320" cy="245" rx="350" ry="135"/>
+        <ellipse cx="1690" cy="335" rx="390" ry="160"/>
+
+        <ellipse cx="170" cy="690" rx="390" ry="155"/>
+        <ellipse cx="560" cy="760" rx="420" ry="165"/>
+        <ellipse cx="1030" cy="675" rx="430" ry="175"/>
+        <ellipse cx="1510" cy="750" rx="470" ry="180"/>
+      </g>
+
+      <rect width="1920" height="1080" fill="#e7f0f3" fill-opacity="0.34"/>
+    </svg>
+  `.trim();
+
+  return svg;
+}
+
+function cloudRevealClip(start, length) {
+  const revealLength = Math.min(3.6, Math.max(0.5, length));
+
+  return {
+    asset: {
+      type: "svg",
+      src: cloudRevealSvg()
+    },
+    start,
+    length: revealLength,
+    fit: "cover",
+    position: "center",
+    opacity: [
+      {
+        from: 1,
+        to: 0,
+        start: Math.min(1.2, revealLength * 0.35),
+        length: Math.max(0.25, revealLength - Math.min(1.2, revealLength * 0.35)),
+        interpolation: "linear"
+      }
+    ],
+    offset: {
+      x: [
+        {
+          from: -0.08,
+          to: 0.18,
+          start: 0,
+          length: revealLength,
+          interpolation: "linear"
+        }
+      ]
+    }
+  };
+}
+
 async function buildShotstackEdit(project, requestUrl, env, aspectRatio = project.aspectRatio || "16:9") {
   const assets = new Map(project.assets.map((asset) => [asset.id, asset]));
   const renderSizes = {
@@ -1035,6 +1100,7 @@ async function buildShotstackEdit(project, requestUrl, env, aspectRatio = projec
 
 const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
   const visualClips = [];
+  const revealClips = [];
   const textClips = [];
   const audioClips = [];
 
@@ -1229,7 +1295,16 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
     }
   }
 
-  visualClips.push(clip);
+    visualClips.push(clip);
+
+  if (
+    asset.kind === "photo" &&
+    String(item.cinematicAction || "none") === "cloud-reveal"
+  ) {
+    revealClips.push(
+      cloudRevealClip(cursor, length)
+    );
+  }
 }
 cursor += length;
   }
@@ -1245,6 +1320,7 @@ cursor += length;
 
   const tracks = [
   ...textClips.map((clip) => ({ clips: [clip] })),
+  ...revealClips.map((clip) => ({ clips: [clip] })),
   ...visualClips.map((clip) => ({ clips: [clip] })),
   ...audioClips.map((clip) => ({ clips: [clip] }))
 ];
