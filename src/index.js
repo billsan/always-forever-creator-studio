@@ -131,8 +131,25 @@ function getImageDimensions(buffer, mime) {
   return null;
 }
 
-async function loadPhoton() {
-  return import("@cf-wasm/photon/workerd");
+function bytesToBase64(bytes) {
+  const data =
+    bytes instanceof Uint8Array
+      ? bytes
+      : new Uint8Array(bytes);
+
+  const chunkSize = 0x8000;
+  let binary = "";
+
+  for (let offset = 0; offset < data.length; offset += chunkSize) {
+    binary += String.fromCharCode(
+      ...data.subarray(offset, offset + chunkSize)
+    );
+  }
+
+  return btoa(binary);
+}
+
+async function loadPhoton() {  return import("@cf-wasm/photon/workerd");
 }
 
 function framedImageResponse(bytes) {
@@ -1300,27 +1317,116 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
   asset.kind === "photo" &&
   String(item.cinematicAction || "none") === "heavenly-light"
 ) {
-  const revealLength = Math.min(3.2, Math.max(0.5, length));
-  const matteUrl = new URL(
-    "/render-assets/heavenly-light-matte.mp4",
-    requestUrl
-  ).toString();
+  const revealLength = Math.min(
+    3.2,
+    Math.max(0.5, length)
+  );
+
+  const sourceKey =
+    `${project.ownerId}/${project.id}/${renderStored}`;
+
+  const sourceObject =
+    await env.MEDIA.get(sourceKey);
+
+  if (!sourceObject) {
+    throw Object.assign(
+      new Error(
+        "The Heavenly Light photo could not be loaded for rendering."
+      ),
+      { status: 404 }
+    );
+  }
+
+  const sourceBytes = new Uint8Array(
+    await sourceObject.arrayBuffer()
+  );
+
+  const sourceMime =
+    sourceObject.httpMetadata?.contentType ||
+    (renderStored.toLowerCase().endsWith(".png")
+      ? "image/png"
+      : renderStored.toLowerCase().endsWith(".webp")
+        ? "image/webp"
+        : "image/jpeg");
+
+  const imageDataUri =
+    `data:${sourceMime};base64,${bytesToBase64(sourceBytes)}`;
+
+  const fitMode =
+    item.fit === "cover"
+      ? "cover"
+      : "contain";
+
+  const heavenlyLightHtml = `
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heavenly-light-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: ${fitMode};
+  object-position: center;
+  opacity: 0;
+  clip-path: circle(3% at 50% 45%);
+  animation:
+    heavenlyLightReveal ${revealLength}s ease-out forwards;
+}
+
+@keyframes heavenlyLightReveal {
+  0% {
+    opacity: 0;
+    clip-path: circle(3% at 50% 45%);
+  }
+
+  100% {
+    opacity: 1;
+    clip-path: circle(90% at 50% 45%);
+  }
+}
+</style>
+</head>
+<body>
+<img
+  class="heavenly-light-photo"
+  src="${imageDataUri}"
+  alt=""
+>
+</body>
+</html>`;
 
   heavenlyLightTracks.push({
-  clips: [
-    {
-      asset: {
-        type: "luma",
-        src: matteUrl
-      },
-      start: cursor,
-      length: revealLength,
-      fit: "cover",
-      position: "center"
-    },
-    clip
-  ]
-});
+    clips: [
+      {
+        asset: {
+          type: "html5",
+          html: heavenlyLightHtml
+        },
+        start: cursor,
+        length,
+        width: renderSize.width,
+        height: renderSize.height,
+        position: "center"
+      }
+    ]
+  });
 } else {
   visualClips.push(clip);
 }
