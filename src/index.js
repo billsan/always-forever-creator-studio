@@ -551,73 +551,48 @@ async function createFramedImage(
 }
 
 async function createHeavenlyLightJpeg(
+  env,
   sourceObject,
   maxDimension = 1080,
   quality = 82
 ) {
-  const {
-    PhotonImage,
-    resize,
-    SamplingFilter
-  } = await loadPhoton();
-
-  const sourceBytes = new Uint8Array(
-    await sourceObject.arrayBuffer()
-  );
-
-  let sourceImage = null;
-  let resizedImage = null;
-
-  try {
-    sourceImage =
-      PhotonImage.new_from_byteslice(sourceBytes);
-
-    const originalWidth =
-      sourceImage.get_width();
-
-    const originalHeight =
-      sourceImage.get_height();
-
-    const scale = Math.min(
-      1,
-      maxDimension /
-        Math.max(originalWidth, originalHeight)
+  if (!env.IMAGES) {
+    throw Object.assign(
+      new Error(
+        "Cloudflare Images is unavailable for Heavenly Light rendering."
+      ),
+      { status: 503 }
     );
-
-    if (scale < 1) {
-      const width = Math.max(
-        1,
-        Math.round(originalWidth * scale)
-      );
-
-      const height = Math.max(
-        1,
-        Math.round(originalHeight * scale)
-      );
-
-      resizedImage = resize(
-        sourceImage,
-        width,
-        height,
-        SamplingFilter.Lanczos3
-      );
-    }
-
-    const outputImage =
-      resizedImage || sourceImage;
-
-    return outputImage.get_bytes_jpeg(quality);
-  } finally {
-    if (resizedImage) {
-      resizedImage.free();
-    }
-
-    if (sourceImage) {
-      sourceImage.free();
-    }
   }
-}
 
+  const input = env.IMAGES.input(sourceObject.body);
+
+  const transformed = input.transform({
+    width: maxDimension,
+    height: maxDimension,
+    fit: "scale-down"
+  });
+
+  const output = transformed.output({
+    format: "image/jpeg",
+    quality
+  });
+
+  const response = output.response();
+
+  if (!response.ok) {
+    throw Object.assign(
+      new Error(
+        "The Heavenly Light photo could not be optimized for rendering."
+      ),
+      { status: 502 }
+    );
+  }
+
+  return new Uint8Array(
+    await response.arrayBuffer()
+  );
+}
 async function ensureFramedRenderAsset(
   env,
   owner,
@@ -1408,6 +1383,7 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
 
  const optimizedBytes =
   await createHeavenlyLightJpeg(
+    env,
     sourceObject,
     1080,
     82
