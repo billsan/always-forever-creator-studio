@@ -1420,16 +1420,18 @@ body {
 }
 
 .heavenly-light-photo {
-  width: 100%;
-  height: 100%;
+  width: auto;
+  height: auto;
+  max-width: calc(100% - 48px);
+  max-height: calc(100% - 48px);
   object-fit: ${fitMode};
   object-position: center;
+  display: block;
   opacity: 0;
   clip-path: circle(3% at 50% 45%);
   animation:
     heavenlyLightReveal ${revealLength}s ease-out forwards;
 }
-
 @keyframes heavenlyLightReveal {
   0% {
     opacity: 0;
