@@ -1357,7 +1357,7 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
     }
   }
 
-    if (
+if (
   asset.kind === "photo" &&
   String(item.cinematicAction || "none") === "heavenly-light"
 ) {
@@ -1366,37 +1366,18 @@ const renderSize = renderSizes[aspectRatio] || renderSizes["16:9"];
     Math.max(0.5, length)
   );
 
-  const sourceKey =
-    `${project.ownerId}/${project.id}/${renderStored}`;
+  /*
+   * Keep the normal Shotstack image clip.
+   * This preserves the same contain/crop and framed-image
+   * geometry used by every other final render.
+   */
+  visualClips.push(clip);
 
-  const sourceObject =
-    await env.MEDIA.get(sourceKey);
-
-  if (!sourceObject) {
-    throw Object.assign(
-      new Error(
-        "The Heavenly Light photo could not be loaded for rendering."
-      ),
-      { status: 404 }
-    );
-  }
-
- const optimizedBytes =
-  await createHeavenlyLightJpeg(
-    env,
-    sourceObject,
-    1080,
-    82
-  );
-
-const imageDataUri =
-  `data:image/jpeg;base64,${bytesToBase64(optimizedBytes)}`;
-
-  const fitMode =
-    item.fit === "cover"
-      ? "cover"
-      : "contain";
-
+  /*
+   * Heavenly Light is now only a reveal overlay.
+   * The overlay starts opaque and an expanding transparent
+   * circle exposes the correctly sized Shotstack photo below.
+   */
   const heavenlyLightHtml = `
 <!doctype html>
 <html>
@@ -1413,44 +1394,44 @@ body {
   background: transparent;
 }
 
-body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.heavenly-light-photo {
-  width: auto;
-  height: auto;
-  max-width: calc(100% - 48px);
-  max-height: calc(100% - 48px);
-  object-fit: ${fitMode};
-  object-position: center;
-  display: block;
-  opacity: 0;
-  clip-path: circle(3% at 50% 45%);
+.heavenly-light-cover {
+  position: absolute;
+  inset: 0;
+  background: ${solidBackground(project.canvas?.background)};
+  -webkit-mask-image:
+    radial-gradient(
+      circle at 50% 45%,
+      transparent 0,
+      transparent var(--radius),
+      #000 calc(var(--radius) + 1px),
+      #000 100%
+    );
+  mask-image:
+    radial-gradient(
+      circle at 50% 45%,
+      transparent 0,
+      transparent var(--radius),
+      #000 calc(var(--radius) + 1px),
+      #000 100%
+    );
+  --radius: 3%;
   animation:
     heavenlyLightReveal ${revealLength}s ease-out forwards;
 }
+
 @keyframes heavenlyLightReveal {
   0% {
-    opacity: 0;
-    clip-path: circle(3% at 50% 45%);
+    --radius: 3%;
   }
 
   100% {
-    opacity: 1;
-    clip-path: circle(90% at 50% 45%);
+    --radius: 90%;
   }
 }
 </style>
 </head>
 <body>
-<img
-  class="heavenly-light-photo"
-  src="${imageDataUri}"
-  alt=""
->
+<div class="heavenly-light-cover"></div>
 </body>
 </html>`;
 
@@ -1462,7 +1443,7 @@ body {
           html: heavenlyLightHtml
         },
         start: cursor,
-        length,
+        length: revealLength,
         width: renderSize.width,
         height: renderSize.height,
         position: "center"
@@ -1472,7 +1453,6 @@ body {
 } else {
   visualClips.push(clip);
 }
-
   if (
     asset.kind === "photo" &&
     String(item.cinematicAction || "none") === "cloud-reveal"
