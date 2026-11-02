@@ -399,6 +399,7 @@
 
   async function uploadFiles(files) {
     if (!files.length || !project) return;
+    let uploadFailed = false;
     for (const file of files) {
       try {
         notify(`Uploading ${file.name}…`);
@@ -406,9 +407,9 @@
         project.assets.push(data.asset);
         renderAssets();
         renderMotionLibrary();
-      } catch (error) { notify(`${file.name}: ${error.message}`, "error"); }
+      } catch (error) { uploadFailed = true; notify(`${file.name}: ${error.message}`, "error"); }
     }
-    notify("Your media is ready.");
+    if (!uploadFailed) notify('Your media is ready.');
   }
 
   function assetMarkup(asset) {
