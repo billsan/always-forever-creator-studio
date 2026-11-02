@@ -1314,16 +1314,17 @@ if (!project?.render || project.render.status === "failed") return;    try {
       project.render = data.render;
       renderReleaseCenter();
       if (project.render?.status === "complete") {
-  $('.tool-rail button[data-panel="release"]')?.click();
-
   const outputs = project.render.outputs || {};
   const allFormatsReady = ["master", "vertical", "portrait", "square"]
-    .every((format) => Boolean(outputs[format] || (format === "master" && project.render.outputUrl)));
+    .every((format) => Boolean(
+      outputs[format] || (format === "master" && project.render.outputUrl)
+    ));
 
   if (allFormatsReady) {
+    $('.tool-rail button[data-panel="release"]')?.click();
     return notify("All four video formats are ready to download and share.");
   }
-  }
+}
 
    if (project.render?.status === "failed") return notify(project.render.error || "The render did not complete.", "error");
     } catch (error) { notify(error.message, "error"); }
