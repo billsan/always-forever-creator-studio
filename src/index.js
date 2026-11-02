@@ -1396,68 +1396,27 @@ body {
 
 .heavenly-light-cover {
   position: absolute;
-  inset: 0;
-  background: ${solidBackground(project.canvas?.background)};
-  -webkit-mask-image:
-    radial-gradient(
-      circle at 50% 45%,
-      transparent 0%,
-      transparent 3%,
-      #000 3.5%,
-      #000 100%
-    );
-  mask-image:
-    radial-gradient(
-      circle at 50% 45%,
-      transparent 0%,
-      transparent 3%,
-      #000 3.5%,
-      #000 100%
-    );
+  left: 50%;
+  top: 45%;
+  width: 6vmin;
+  height: 6vmin;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  box-shadow:
+    0 0 0 200vmax ${solidBackground(project.canvas?.background)};
   animation:
     heavenlyLightReveal ${revealLength}s ease-out forwards;
 }
 
 @keyframes heavenlyLightReveal {
   0% {
-    -webkit-mask-image:
-      radial-gradient(
-        circle at 50% 45%,
-        transparent 0%,
-        transparent 3%,
-        #000 3.5%,
-        #000 100%
-      );
-    mask-image:
-      radial-gradient(
-        circle at 50% 45%,
-        transparent 0%,
-        transparent 3%,
-        #000 3.5%,
-        #000 100%
-      );
+    transform: translate(-50%, -50%) scale(1);
   }
 
   100% {
-    -webkit-mask-image:
-      radial-gradient(
-        circle at 50% 45%,
-        transparent 0%,
-        transparent 90%,
-        #000 91%,
-        #000 100%
-      );
-    mask-image:
-      radial-gradient(
-        circle at 50% 45%,
-        transparent 0%,
-        transparent 90%,
-        #000 91%,
-        #000 100%
-      );
+    transform: translate(-50%, -50%) scale(40);
   }
 }
-
 </style>
 </head>
 <body>
