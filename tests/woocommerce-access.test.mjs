@@ -30,5 +30,6 @@ test("paid grants limit project creation and photo uploads while administrators 
   assert.match(worker, /session\.role !== "administrator"/);
   assert.match(worker, /projects_created < project_limit/);
   assert.match(worker, /This package includes \$\{limit\} photos/);
+  assert.match(worker, /This package includes \$\{limit\} songs/);
   assert.match(worker, /supports a video up to \$\{project\.entitlement\.minutes\} minutes/);
 });
