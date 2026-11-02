@@ -1858,7 +1858,7 @@ async function api(request, env, url) {
     if (length > MAX_UPLOAD_BYTES) return json({ message: "This Phase 1 upload is limited to 95 MB per file." }, 413);
     const kind = mime.startsWith("image/") ? "photo" : mime.startsWith("video/") ? "video" : "audio";
     if (session.role !== "administrator") {
-      const limit = kind === "photo" ? Number(project.entitlement?.photos || 0) : 0;
+      const limit = kind === 'photo' ? Number(project.entitlement?.photos || 0) : kind === 'audio' ? Number(project.entitlement?.songs || 0) : 0;
       if (limit && project.assets.filter((item) => item.kind === kind).length >= limit) return json({ message: kind === "photo" ? `This package includes ${limit} photos. Purchase additional photos or upgrade the package to continue.` : `This package includes ${limit} songs.` }, 403);
     }
     const assetId = crypto.randomUUID();
